@@ -223,7 +223,63 @@ if (CMAKE_CUDA_COMPILER)
     badslam_test
   )
   
+  ############## CUSTOM CODE ###############
   
+  macro(copy_files TARGET_DIR INPUT_DIR)
+    set(extra_args ${ARGN})
+    list(LENGTH extra_args extra_args_count)
+    if (${extra_args_count} GREATER 0)
+      foreach(FILE ${extra_args})
+        if (EXISTS "${INPUT_DIR}/${FILE}")
+          add_custom_command(
+            TARGET badslam POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${INPUT_DIR}/${FILE} ${TARGET_DIR}
+          )
+        else()
+          message(FATAL_ERROR "File ${INPUT_DIR}/${FILE} does not exist")
+        endif()
+      endforeach()
+    endif()
+  endmacro()
+
+  macro(copy_files_optional TARGET_DIR INPUT_DIR)
+    set(extra_args ${ARGN})
+    list(LENGTH extra_args extra_args_count)
+    if (${extra_args_count} GREATER 0)
+      foreach(FILE ${extra_args})
+        if (EXISTS "${INPUT_DIR}/${FILE}")
+          add_custom_command(
+            TARGET badslam POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${INPUT_DIR}/${FILE} ${TARGET_DIR}
+          )
+        else()
+          message(WARNING "File ${INPUT_DIR}/${FILE} does not exist")
+        endif()
+      endforeach()
+    endif()
+  endmacro()
+
+  macro(copy_dll DIR)
+    copy_files($<TARGET_FILE_DIR:badslam> ${DIR} ${ARGN})
+  endmacro()
+
+  copy_dll("${BOOST_ROOT}/lib64-msvc-14.2" "boost_filesystem-vc142-mt-gd-x64-1_73.dll")
+  copy_dll("${VCPKG_LIBS}/packages/suitesparse_x64-windows/bin" "libcxsparse.dll")
+  if(NOT ${OpenCV_CONFIG_DIR} STREQUAL "/")
+  copy_dll("${OpenCV_CONFIG_DIR}/../bin" "opencv_world346d.dll")
+  endif()
+  if(NOT ${Qt5_CONFIG_DIR} STREQUAL "/")
+  copy_dll("${Qt5_CONFIG_DIR}/../../../bin" "Qt5Cored.dll" "Qt5Guid.dll" "Qt5Svgd.dll" "Qt5Widgetsd.dll")
+  endif()
+
+  add_custom_command(
+    TARGET badslam POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "resources")
+
+  copy_files_optional("$<TARGET_FILE_DIR:badslam>/resources" "${CMAKE_CURRENT_SOURCE_DIR}/build_resources" "auto_tuning_result.txt")
+
+  
+  ############## END CUSTOM CODE ###############
   # Installation.
   set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
   install(TARGETS badslam DESTINATION bin)

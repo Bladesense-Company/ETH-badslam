@@ -1,0 +1,78 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "\\bigobj",
+      "buildCommandArgs": "-v -d explain",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "VCPKG_LIBS",
+          "value": "vcpkg directory, for example: C:/Program Files/vcpkg",
+          "type": "PATH"
+        },
+        {
+          "name": "BOOST_ROOT",
+          "value": "boost root directory, for example: C:/Users/Name/Documents/C++Libraries/boost_1_73_0",
+          "type": "PATH"
+        },
+        {
+          "name": "DLib_DIR",
+          "value": "Dlib directory, for example: C:/Users/Name/Documents/C++Libraries/DLib/out/build/x64-Debug",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5_CONFIG_DIR",
+          "value": "If installed using vcpkg: use / (a single forward slash)  else Qt5 directory, for example: C:/Users/Name/C++_libraries/Qt5/5.12.12/msvc2017_64/lib/cmake/Qt5",
+          "type": "PATH"
+        },
+        {
+          "name": "CUDA_TOOLKIT_DIR",
+          "value": "CUDA toolkit directory, for example: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2",
+          "type": "PATH"
+        },
+        {
+          "name": "CUDA_ARCH",
+          "value": "architecture of your gpu, for example: 75",
+          "type": "STRING"
+        },
+        {
+          "name": "AZURE_SDK",
+          "value": "Azure kinect sdk directory, for example: C:/Program Files/Azure Kinect SDK v1.4.1",
+          "type": "PATH"
+        },
+        {
+          "name": "OpenCV_CONFIG_DIR",
+          "value": "If installed using vcpkg: use / (a single forward slash)  else OpenCV directory with OpenCVConfig.cmake, for example: C:/Users/Name/C++_libraries/opencv/build/x64/vc15/lib"
+        },
+        {
+          "name": "opengv_DIR",
+          "value": "OpenGV build directory, for example: C:/Users/Name/Documents/C++Libraries/opengv/build/"
+        },
+        {
+          "name": "VIO_RELEASE",
+          "value": "directory with vio_jsonl.exe, for example: C:/Users/Name/Documents/Bladesense/SpectacularAI SDK/sdk-examples/cpp/oak/out/build/x64-Release",
+          "type": "PATH"
+        }
+
+      ]
+    },
+    {
+      "name": "x64-Release",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": []
+    }
+  ]
+}

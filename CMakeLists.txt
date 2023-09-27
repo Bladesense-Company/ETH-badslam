@@ -3,10 +3,24 @@ project(libvis LANGUAGES C CXX)
 
 # Enable C++14 globally
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Support IDEs: https://cliutils.gitlab.io/modern-cmake/chapters/features/ides.html
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake-default-targets")
+
+####################### CUSTOM CODE ##########################
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/applications/badslam")
+
+if(NOT ${Qt5_CONFIG_DIR} STREQUAL "/")
+    set(Qt5_DIR ${Qt5_CONFIG_DIR})
+endif()
+
+if(NOT ${OpenCV_CONFIG_DIR} STREQUAL "/")
+    set(OpenCV_DIR ${OpenCV_CONFIG_DIR})
+endif()
+
+####################### END CUSTOM CODE ######################
 
 if(MSVC)
   # Fixes DLL generation with MSVC.
@@ -24,6 +38,26 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 include(CheckLanguage)
 
+#[[
+set(CMAKE_PREFIX_PATH "C:/Users/Gebruiker/Bladesense")
+#list(APPEND CMAKE_PREFIX_PATH "C:/Users/Gebruiker/Bladesense/glew-2.1.0-win32")
+list(APPEND CMAKE_PREFIX_PATH "C:/Users/Gebruiker/Bladesense/vcpkg/installed")
+list(APPEND VCPKG_FEATURE_FLAGS "versions")
+
+################################################################################
+# Toolchain
+message(STATUS "CMAKE_TOOLCHAIN_FILE_BEFORE: ${CMAKE_TOOLCHAIN_FILE}")
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_TOOLCHAIN_FILE "C:/Users/Gebruiker/Bladesense/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+message(STATUS "CMAKE_TOOLCHAIN_FILE_VCPKG: ${CMAKE_TOOLCHAIN_FILE}")
+]]
+################################################################################
+#Bigobj
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+
 
 ################################################################################
 # Dependencies.
@@ -34,7 +68,10 @@ include(CheckLanguage)
 #       Common settings are either the 'native' arch for which the binary will
 #       be known to run on exclusively, or a broader set of PTX architectures
 #       in case the binary is intended for distribution.
+set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_DIR}/bin/nvcc.exe")
+
 check_language(CUDA)
+
 if (CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   
@@ -55,7 +92,12 @@ if (CMAKE_CUDA_COMPILER)
   if (NOT MSVC)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -ccbin=${CMAKE_CXX_COMPILER}")
   else()
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
+    #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+    #set(CMAKE_CUDA_FLAGS "-arch=sm_75")
+    message (STATUS "CMAKE_CUDA_FLAGS: ${CMAKE_CUDA_FLAGS}")
+    set(CUDA_cublas_LIBRARY "${CUDA_TOOLKIT_DIR}/lib/x64/cublas.lib")
+    message (STATUS "CUDA_cublas_LIBRARY: ${CUDA_cublas_LIBRARY}")
   endif()
 else()
   message(FATAL_ERROR "CMake did not find CUDA, which is required to build this program.")
@@ -74,7 +116,13 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 if (POLICY CMP0074) # get rid of annoying warning
   cmake_policy(SET CMP0074 NEW)
 endif()
-find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
+
+#set(Boost_DEBUG ON)
+
+find_package(Boost 1.73 REQUIRED COMPONENTS serialization filesystem system) 
+
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
 
 # Loguru (packaged)
 add_library(loguru SHARED
@@ -119,7 +167,8 @@ add_subdirectory(libvis/third_party/libpng)
 set_target_properties(png png_static genfiles PROPERTIES FOLDER "libvis/third_party/png")
 
 # GLEW (external, required)
-find_package(GLEW REQUIRED)
+#set(GLEW_DIR "${VCPKG_LIBS}/installed/x64-windows/share/glew")
+find_package(GLEW REQUIRED) #was find_package(GLEW REQUIRED)
 
 # Vulkan (external, optional)
 set(VULKAN_PATH "" CACHE PATH "Set this to the path of the Vulkan SDK installation (the directory containing include and lib) if installed locally, otherwise leave this empty.")
@@ -140,6 +189,7 @@ set(CMAKE_AUTOMOC ON)
 # Instruct CMake to run rcc (resource compiler) automatically when needed.
 set(CMAKE_AUTORCC ON)
 
+#set(Qt5_DIR "C:/Users/Gebruiker/Bladesense/vcpkg/installed/x64-windows/share/cmake/Qt5")
 find_package(Qt5 5.8 REQUIRED COMPONENTS Core OpenGL Widgets)
 
 if (UNIX AND NOT APPLE)
@@ -155,7 +205,8 @@ if (TARGET Qt5::Core AND UNIX)
 endif()
 
 # OpenCV (external, required)
-find_package(OpenCV 3.1.0 REQUIRED)
+#find_package(OpenCV 3.1.0 REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 
 # Settings.
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
@@ -176,15 +227,15 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
   set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:-Wno-missing-field-initializers>")
 elseif(MSVC)
   #  set(LIBVIS_WARNING_OPTIONS "$<$<COMPILE_LANGUAGE:CXX>:/O2")
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/MP >")
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/MP>") #EDITED: REMOVED A SPACE HERE AFTER MP
   set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/W4>")
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4068 >")
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4127 >") # https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4127?view=vs-2019
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4068>")
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4127>") # https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4127?view=vs-2019
   
   # NOTE: Disabled this since it triggered in a lot of places, including external headers, creating a lot of warning spam.
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4244 >")
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4267 >")
-  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4389 >")
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4244>")
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4267>")
+  set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:/wd4389>")
   #ADD_DEFINITIONS("-D _USE_MATH_DEFINES /bigobj /wd4305 /wd4244 /MP")
   #target_compile_definitions(libvis PUBLIC _USE_MATH_DEFINES)
 endif()
@@ -497,12 +548,25 @@ add_executable(libvis_test
   libvis/src/libvis/test/util.cc
 )
 set_property(TARGET libvis_test PROPERTY FOLDER "libvis")
+
+find_library(CUDBLASLIB_ABS_PATH
+             NAMES cublas.lib
+             PATHS "${CUDA_TOOLKIT_DIR}/lib/x64"
+             NO_DEFAULT_PATH)
+if(NOT CUDBLASLIB_ABS_PATH)
+  message(FATAL_ERROR "cublas.lib not found ${CUDA_TOOLKIT_ROOT_DIR} path: ${CUDBLASLIB_ABS_PATH}")
+endif()
+
+message(STATUS "CUDBLASLIB_ABS_PATH ${CUDBLASLIB_ABS_PATH}")
 target_link_libraries(libvis_test PRIVATE
   gtest
   Threads::Threads
   libvis
-  cublas  # TODO: currently required because of lm_optimizer.h. That should not be necessary.
+  #cublas  # TODO: currently required because of lm_optimizer.h. That should not be necessary.
+  ${CUDBLASLIB_ABS_PATH}
 )
+
+message(STATUS "CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
 target_include_directories(libvis_test PRIVATE
   ${gtest_SOURCE_DIR}/include
   #${gtest_SOURCE_DIR}
