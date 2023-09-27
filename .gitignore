@@ -5,3 +5,4 @@ build*/
 .ipynb_checkpoints
 *.pyc
 .vs/
+auto_tuning*
